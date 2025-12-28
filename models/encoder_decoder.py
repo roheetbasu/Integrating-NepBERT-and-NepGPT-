@@ -31,3 +31,21 @@ class NepaliBERTNepGPTModel(nn.Module):
                                 )
             for _ in range(self.decoder.config.num_hidden_layers)
         ])
+        
+        #layer norms for residual connection
+        self.cross_attns_layer_norms = nn.ModuleList([
+            nn.LayerNorm(config.decoder_hidden_size)
+            for _ in range(self.deocder.config.num_hidden_layers)
+        ])
+        
+        # Projection if encoder and decoder sizes differ
+        if config.encoder_hidden_size != config.decoder_hidden_size:
+            self.encoder_proj = nn.Linear(
+                config.encoder_hidden_size, 
+                config.decoder_hidden_size
+            )
+        else:
+            self.encoder_proj = None
+            
+    
+    def forward(self, inputs_ids)
