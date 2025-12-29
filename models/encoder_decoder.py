@@ -48,4 +48,91 @@ class NepaliBERTNepGPTModel(nn.Module):
             self.encoder_proj = None
             
     
-    def forward(self, inputs_ids)
+    def forward(self, 
+                input_ids: torch.Tensor,
+                attention_mask: torch.Tensor,
+                decoder_input_ids : torch.Tensor,
+                decoder_attention_mask: Optional[torch.Tensor] = None,
+                label: Optional[torch.Tensor] = None,
+                ):
+        
+        #Encode source text with NepaliBERT
+        encoder_outputs = self.encoder(
+            input_ids = input_ids,
+            attention_mask = attention_mask,
+            return_dict = True
+        )
+        encoder_hidden_states = encoder_outputs.last_hidden_state
+        
+        if self.encoder_proj is not None:
+            encoder_hidden_states = self.encoder_proj(encoder_hidden_states)
+            
+        #get decoder embedding
+        decoder_embedding = self.decoder.model.embed_tokens(decoder_input_ids)
+        
+        #pass through the decoder layers
+        hidden_states = decoder_embedding
+        
+        for i, (decoder_layer, cross_attn_layer, layer_norm) in enumerate(
+            zip(self.decoder.model.layers,
+                self.cross_attention_layers,
+                self.cross_attns_layer_norms)
+        ):
+            #self attention in decoder
+            layer_output = decoder_layer(hidden_states)
+            hidden_states = layer_output[0] if isinstance(layer_output, tuple) else layer_output
+            
+            #cross attention to encoder
+            cross_attn_output = cross_attn_layer(
+                decoder_hidden = hidden_states,
+                encoder_hidden = encoder_hidden_states,
+                encoder_attention_mask = attention_mask
+                )
+            
+            #Residual Connection
+            hidden_states = layer_norm(hidden_states + cross_attn_output)
+            
+            #Final language modeling head
+            lm_logits = self.decoder.lm_head(hidden_states)
+            
+            loss = None
+            if label is not None:
+                loss_fct = nn.CrossEntropyLoss(ignore_index=100)
+                loss = loss_fct(lm_logits.view(-1,lm_logits.size(-1)),label.view(-1))
+                
+        return {
+            'loss': loss,
+            'logits' : lm_logits,
+            'encoder_hidden_states' : encoder_hidden_states
+        }
+        
+    def generate(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        max_length: int = 128,
+        **kwargs   
+    ):
+        #Encode
+        encoder_outputs = self.encoder(
+            input_ids,
+            attention_mask = attention_mask,
+            return_dict = True
+        )
+        encoder_hidden_states = encoder_outputs.last_hidden_state
+        
+        if self.encoder_proj is not None:
+            encoder_hidden_states = self.encoder_proj(encoder_hidden_states)
+            
+        batch_size = input_ids.size(0)
+        device = input_ids.device
+        
+        # Start with BOS token
+        bos_token_id = self.decoder.config.bos_token_id or 1
+        decoder_input_ids = torch.full(
+            (batch_size,1),
+            bos_token_id,
+            dtype=torch.float,
+            device=device
+        ) 
+        
