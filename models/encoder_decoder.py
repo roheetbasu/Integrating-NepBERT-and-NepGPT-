@@ -136,3 +136,28 @@ class NepaliBERTNepGPTModel(nn.Module):
             device=device
         ) 
         
+        # greedy decoding
+        generated_ids = []
+        
+        for _ in range(max_length):
+            output = self.forward(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                decoder_input_ids=decoder_input_ids
+            )
+            
+            next_token_logits = output['logits'][:,-1,:]
+            next_token_id = torch.argmax(next_token_logits, dim = -1,keepdim=True)
+            
+            generated_ids.append(next_token_id)
+            decoder_input_ids = torch.cat([decoder_input_ids,next_token_id],dim=1)
+            
+            #stop if EOS token
+            eos_token_id = self.decoder.config.eos_token_id
+            
+            if eos_token_id and (next_token_id == eos_token_id).all():
+                break
+            
+            if generated_ids:
+                return torch.cat(generated_ids, dim=1)
+            return torch.tensor([[]], device=device, dtype=torch.float)
