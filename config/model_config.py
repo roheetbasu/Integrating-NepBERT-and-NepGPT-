@@ -22,6 +22,8 @@ class EncoderDecoderConfig:
     vocab_size:int = 32000
     
     #Training setting
+    batch_size: int = 16
+    num_epochs: int = 10 
     learning_rate:float = 5e-5
     gradient_accumulation:int = 4
     
