@@ -101,3 +101,41 @@ class NepaliSentencePieceTokenizer:
                 os.remove(temp_file)
             
         self.load()                     
+
+    def encode(self, text: str, add_bos: bool=False, add_eos: bool=False):
+        
+        if self.sp is None:
+            raise RuntimeError("Tokenizer Not loaded")
+        
+        ids = self.sp.encode(text, out_type = int)
+        
+        if add_bos:
+            ids = [self.bos_id] + ids
+            
+        if add_eos:
+            ids = ids + [self.eos_id]
+            
+        return ids
+    
+    def decode(self, ids: List[int]):
+        
+        if self.sp is None:
+            raise RuntimeError("Tokenzier not loaded")
+        
+        return self.sp.decode(ids)
+    
+    def encode_batch(self, texts: List[str], add_bos:bool=False, add_eos:bool=False):
+        
+        return [self.encode(text, add_bos, add_eos) for text in texts]
+    
+    def decode_batch(self, ids_list:List[List[int]]):
+        
+        return [self.decode(ids) for ids in ids_list]
+    
+    def tokenize(self, text: str):
+        
+        if self.sp is None:
+            raise RuntimeError("Tokenizer Not loaded")
+        
+        return self.sp.encode(text, out_type = str)
+            
