@@ -161,3 +161,5 @@ class NepaliBERTNepGPTModel(nn.Module):
             if generated_ids:
                 return torch.cat(generated_ids, dim=1)
             return torch.tensor([[]], device=device, dtype=torch.float)
+        
+

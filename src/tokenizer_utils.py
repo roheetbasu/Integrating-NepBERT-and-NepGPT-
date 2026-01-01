@@ -62,7 +62,7 @@ class NepaliSentencePieceTokenizer:
                 continue
             
             df = pd.read_csv(data_path)
-            all_texts.extend(df.dropna().astype(str))
+            all_texts.extend(df.iloc[:,0].dropna().astype(str).tolist())
             
             if len(all_texts) == 0:
                 raise ValueError(f'No training data found')
@@ -82,11 +82,11 @@ class NepaliSentencePieceTokenizer:
             spm.SentencePieceProcessor(
                 input = temp_file,
                 model_prefix = self.model_prefix,
-                character_coverage = self.character_coverage
-                pad_id = self.pad_id
-                unk_id = self.unk_id
-                bos_id = self.bos_id
-                eos_id = self.eos_id
+                character_coverage = self.character_coverage,
+                pad_id = self.pad_id,
+                unk_id = self.unk_id,
+                bos_id = self.bos_id,
+                eos_id = self.eos_id,
                 user_defined_symbols = ['[PAD]','[UNK]','[BOS]','[EOS]'],
                 normalization_rule_name = 'nfkc'
             )
