@@ -138,4 +138,43 @@ class NepaliSentencePieceTokenizer:
             raise RuntimeError("Tokenizer Not loaded")
         
         return self.sp.encode(text, out_type = str)
+    
+    def get_vocab_size(self):
+        
+        if self.sp is None:
+            raise RuntimeError("Tokenizer not loaded")
+        
+        return self.sp.vocab_size
             
+    def id_to_piece(self, idx : int):
+        
+        if self.sp is None:
+            raise RuntimeError("Tokenizer not loaded")
+        
+        return self.sp.id_to_piece(idx)
+    
+    def piece_to_id(self, piece:str):
+        
+        if self.sp is None:
+            raise RuntimeError("Tokenizer no loaded")
+        
+        return self.sp.piece_to_id(piece)
+    
+    @property
+    def pad_token_id(self):
+        return self.pad_id
+    
+    @property
+    def unk_token_id(self):
+        return self.unk_id
+    
+    @property
+    def bos_token_id(self):
+        return self.bos_id
+    
+    @property
+    def eos_token_id(self):
+        return self.eos_id
+    
+    
+        
