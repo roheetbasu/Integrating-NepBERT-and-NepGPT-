@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 @dataclass
 class EncoderDecoderConfig:
@@ -19,7 +18,7 @@ class EncoderDecoderConfig:
     #General_setting
     max_source_length:int = 128
     max_target_length:int = 128
-    vocab_size:int = 32000
+    model_vocab_size:int = 32000
     
     #Training setting
     batch_size: int = 16
@@ -33,8 +32,9 @@ class EncoderDecoderConfig:
     early_stopping: bool = True
     
     #tokenizer
-    data_path = ""
+    data_path:str = "data/nepaliSentences_cleaned_minlen.txt"
     model_prefix: str = "Nepali_tokenizer"
+    tokenizer_vocab_size: int = 32000
     model_type:str = "unigram"
     force_retrain:bool = True
     
