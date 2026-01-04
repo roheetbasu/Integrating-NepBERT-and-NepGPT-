@@ -1,6 +1,5 @@
 import os
 import sentencepiece as spm
-import pandas as pd
 from typing import Optional, List
 
 class NepaliSentencePieceTokenizer:
@@ -36,14 +35,14 @@ class NepaliSentencePieceTokenizer:
         if not os.path.exists(self.model_file):
             raise FileNotFoundError(
                 f"Tokenizer model not found from {self.model_file}"
-                "please train the tokenzier first"
+                "please train the tokenizer first"
             )
             
         self.sp = spm.SentencePieceProcessor()
         self.sp.load(self.model_file)
         
         print(f" Loaded tokenizer from {self.model_file}")
-        print(f" Vocabulary size: {self.vocab_size}")
+        print(f" Vocabulary size: {self.sp.vocab_size}")
         
     def train(self, data_path: str, force_retrain: bool = False):
         
@@ -51,17 +50,19 @@ class NepaliSentencePieceTokenizer:
             print(f"Tokenizer model found at {self.model_file}")
             print("Loading existing tokenzier.....")
             self.load()
+            return
             
         print("Training tokenizer....")
         
         all_texts = []
         
         if not os.path.exists(data_path):
-            raise FileNotFoundError(f"Warning:{data_path} not found, skipping...")
+            raise FileNotFoundError(f"{data_path} not found")
             
             
-        df = pd.read_csv(data_path)
-        all_texts.extend(df.iloc[:,0].dropna().astype(str).tolist())
+        with open(data_path, "r", encoding="utf-8") as f:
+            all_texts = [line.strip() for line in f if line.strip()]
+
             
         if len(all_texts) == 0:
             raise ValueError(f'No training data found')
@@ -81,6 +82,8 @@ class NepaliSentencePieceTokenizer:
             spm.SentencePieceTrainer.train(
                 input = temp_file,
                 model_prefix = self.model_prefix,
+                vocab_size  = self.vocab_size,
+                model_type = self.model_type,
                 character_coverage = self.character_coverage,
                 pad_id = self.pad_id,
                 unk_id = self.unk_id,
@@ -106,7 +109,7 @@ class NepaliSentencePieceTokenizer:
         if self.sp is None:
             raise RuntimeError("Tokenizer Not loaded")
         
-        ids = self.sp.encode(text, out_type = int)
+        ids = self.sp.encode(text, out_type = int, add_bos=False, add_eos=False)
         
         if add_bos:
             ids = [self.bos_id] + ids
