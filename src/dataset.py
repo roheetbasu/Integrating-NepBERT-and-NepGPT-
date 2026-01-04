@@ -1,5 +1,6 @@
 import torch
-import torch.utils.data import Dataset
+from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
 import pandas as pd
 from typing import Dict
 
@@ -30,7 +31,7 @@ class NepaliGECDataset(Dataset):
         
         target_ids = self.tokenizer.encode(
             correct_text,
-            add_bos = True
+            add_bos = True,
             add_eos = True
         )
         
@@ -39,6 +40,34 @@ class NepaliGECDataset(Dataset):
             "labels" : target_ids
         }
         
-
-          
+class Seq2SeqCollator:
+    def __init__(self, tokenizer):
+        self.pad = tokenizer.pad_token_id
+        
+    def __call__(self, batch):
+        #Encoder
+        input_ids = [torch.tensor(b['input_ids'],dtype=torch.long) for b in batch]
+        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad)
+        attention_mask = (input_ids != self.pad).long()
+        
+        #Decoder
+        targets = [b['labels'] for b in batch]
+        decoder_input_ids = [torch.tensor(t[:-1],dtype=torch.long) for t in targets]
+        labels =  [torch.tensor(t[1:],dtype=torch.long) for t in targets]
+        
+        decoder_input_ids = pad_sequence(decoder_input_ids, batch_first=True, padding_value=self.pad)
+        
+        labels = pad_sequence(labels, batch_first=True, padding_value=self.pad)
+        
+        labels[labels == self.pad] = -100 # important for loss
+        
+        decoder_attention_mask = (decoder_input_ids != self.pad).long()
+        
+        return {
+            "input_ids" : input_ids,
+            "attention_mask" : attention_mask,
+            "decoder_input_ids" : decoder_input_ids,
+            "decoder_attention_mask" : decoder_attention_mask,
+            "labels" : labels
+        }
     
