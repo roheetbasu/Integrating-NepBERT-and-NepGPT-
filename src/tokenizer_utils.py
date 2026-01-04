@@ -12,9 +12,9 @@ class NepaliSentencePieceTokenizer:
         model_type = "unigram",
         character_coverage: float = 0.9995,
         pad_id: int = 0,
-        unk_id: int = 0,
-        bos_id: int = 0,
-        eos_id: int = 0
+        unk_id: int = 1,
+        bos_id: int = 2,
+        eos_id: int = 3
     ):
         self.model_prefix = model_prefix
         self.vocab_size = vocab_size
@@ -45,7 +45,7 @@ class NepaliSentencePieceTokenizer:
         print(f" Loaded tokenizer from {self.model_file}")
         print(f" Vocabulary size: {self.vocab_size}")
         
-    def train(self, data_paths: List[str], force_retrain: bool = False):
+    def train(self, data_path: str, force_retrain: bool = False):
         
         if os.path.exists(self.model_file) and not force_retrain:
             print(f"Tokenizer model found at {self.model_file}")
@@ -56,16 +56,15 @@ class NepaliSentencePieceTokenizer:
         
         all_texts = []
         
-        for data_path in data_paths:
-            if not os.path.exists(data_path):
-                print(f"Warning:{data_path} not found, skipping...")
-                continue
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Warning:{data_path} not found, skipping...")
             
-            df = pd.read_csv(data_path)
-            all_texts.extend(df.iloc[:,0].dropna().astype(str).tolist())
             
-            if len(all_texts) == 0:
-                raise ValueError(f'No training data found')
+        df = pd.read_csv(data_path)
+        all_texts.extend(df.iloc[:,0].dropna().astype(str).tolist())
+            
+        if len(all_texts) == 0:
+            raise ValueError(f'No training data found')
             
         #save to temporary files
         temp_file = f"{self.model_prefix}_temp_file.txt"
@@ -79,7 +78,7 @@ class NepaliSentencePieceTokenizer:
         print(f"Character_coverage:{self.character_coverage}")
         
         try:
-            spm.SentencePieceProcessor(
+            spm.SentencePieceTrainer.train(
                 input = temp_file,
                 model_prefix = self.model_prefix,
                 character_coverage = self.character_coverage,
@@ -120,7 +119,7 @@ class NepaliSentencePieceTokenizer:
     def decode(self, ids: List[int]):
         
         if self.sp is None:
-            raise RuntimeError("Tokenzier not loaded")
+            raise RuntimeError("Tokenizer not loaded")
         
         return self.sp.decode(ids)
     
