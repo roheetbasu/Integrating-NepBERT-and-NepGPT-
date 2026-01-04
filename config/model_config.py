@@ -37,6 +37,7 @@ class EncoderDecoderConfig:
     model_prefix: str = "Nepali_tokenizer"
     vocab_size: int = 32000
     model_type = "unigram"
+    force_retrain = True
     
     
     
