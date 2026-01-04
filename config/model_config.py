@@ -32,6 +32,12 @@ class EncoderDecoderConfig:
     length_penalty: float = 1.0
     early_stopping: bool = True
     
+    #tokenizer
+    data_path = ""
+    model_prefix: str = "Nepali_tokenizer"
+    vocab_size: int = 32000
+    model_type = "unigram"
+    
     
     
     
