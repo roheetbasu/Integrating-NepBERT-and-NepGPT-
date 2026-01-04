@@ -44,9 +44,9 @@ class CrossAttentionLayer(nn.Module):
         
         #apply masking if provided
         if encoder_attention_mask is not None:
-            encoder_attention_mask = encoder_attention_mask.unsqueeze(1).unsqueeze(2)
+            pad_mask = encoder_attention_mask == 0
             attention_scores = attention_scores.masked_fill(
-                encoder_attention_mask == 0, float('-inf')
+                pad_mask, float('-inf')
             )
         
         #softmax to get attention weights
