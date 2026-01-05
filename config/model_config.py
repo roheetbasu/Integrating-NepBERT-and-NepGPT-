@@ -37,6 +37,10 @@ class EncoderDecoderConfig:
     tokenizer_vocab_size: int = 32000
     model_type:str = "unigram"
     force_retrain:bool = True
+    pad_id: int = 0
+    unk_id: int = 1
+    bos_id: int = 2
+    eos_id: int = 3
     
     
     
