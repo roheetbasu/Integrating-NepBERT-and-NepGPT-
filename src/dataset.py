@@ -26,13 +26,17 @@ class NepaliGECDataset(Dataset):
         source_ids = self.tokenizer.encode(
             incorrect_text,
             add_bos = True,
-            add_eos = True
+            add_eos = True,
+            max_length=self.max_source_length,
+            truncation=True
         )
         
         target_ids = self.tokenizer.encode(
             correct_text,
             add_bos = True,
-            add_eos = True
+            add_eos = True,
+            max_length=self.max_target_length,
+            truncation=True
         )
         
         return {
