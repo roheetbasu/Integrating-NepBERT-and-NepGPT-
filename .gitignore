@@ -8,3 +8,4 @@ checkpoints/
 runs/
 logs/
 tensorboard/
+data/
