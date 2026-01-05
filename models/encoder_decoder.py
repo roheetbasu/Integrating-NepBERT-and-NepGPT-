@@ -37,7 +37,7 @@ class NepaliBERTNepGPTModel(nn.Module):
         self.cross_attention_layers = nn.ModuleList([
             CrossAttentionLayer(
                 hidden_size = config.decoder_hidden_size,
-                num_heads = config.num_cross_attention_head,
+                num_heads = config.num_cross_attention_heads,
                 dropout = config.cross_attention_dropout
                                 )
             for _ in range(self.decoder.config.num_hidden_layers)
@@ -108,7 +108,7 @@ class NepaliBERTNepGPTModel(nn.Module):
             
             loss = None
             if label is not None:
-                loss_fct = nn.CrossEntropyLoss(ignore_index=100)
+                loss_fct = nn.CrossEntropyLoss(ignore_index=-100)
                 loss = loss_fct(lm_logits.view(-1,lm_logits.size(-1)),label.view(-1))
                 
         return {
@@ -139,11 +139,11 @@ class NepaliBERTNepGPTModel(nn.Module):
         device = input_ids.device
         
         # Start with BOS token
-        bos_token_id = self.decoder.config.bos_token_id or 1
+        bos_token_id = self.config.bos_token_id
         decoder_input_ids = torch.full(
             (batch_size,1),
             bos_token_id,
-            dtype=torch.float,
+            dtype=torch.long,
             device=device
         ) 
         
@@ -164,14 +164,13 @@ class NepaliBERTNepGPTModel(nn.Module):
             decoder_input_ids = torch.cat([decoder_input_ids,next_token_id],dim=1)
             
             #stop if EOS token
-            eos_token_id = self.decoder.config.eos_token_id
-            
+            eos_token_id = self.config.eos_token_id
             if eos_token_id and (next_token_id == eos_token_id).all():
                 break
             
             if generated_ids:
                 return torch.cat(generated_ids, dim=1)
-            return torch.tensor([[]], device=device, dtype=torch.float)
+            return torch.tensor([[]], device=device, dtype=torch.long)
         
 
 class GECModel:
@@ -195,3 +194,34 @@ class GECModel:
         
         #Load model
         self.model = NepaliBERTNepGPTModel(config)
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+        self.model.eval()
+
+        print(f"Model loaded on: {self.device}")
+        
+    def correct(self, text):
+        
+        input_ids = self.tokenizer.encode(
+            text,
+            add_bos=True,
+            add_eos=True,
+            max_length = self.config.max_source_length,
+            truncation=True
+        )
+        
+        input_ids = torch.tensor([input_ids],dtype=torch.long).to(self.device)
+        
+        attention_mask = (input_ids != self.tokenizer.pad_token_id).long()
+        
+        with torch.no_grad():
+            generated_ids = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=self.config.max_target_length
+            )
+
+        return self.tokenizer.decode(generated_ids[0].tolist())
+
+        
