@@ -1,5 +1,6 @@
 import os
 import sentencepiece as spm
+import numpy as np
 from typing import Optional, List
 
 class NepaliSentencePieceTokenizer:
@@ -103,8 +104,7 @@ class NepaliSentencePieceTokenizer:
             
         self.load()                     
 
-    def encode(self, text: str, add_bos: bool=False, add_eos: bool=False):
-        
+    def encode(self, text: str, add_bos: bool = False, add_eos: bool = False, max_length: int = 128, truncation: bool = True):
         if self.sp is None:
             raise RuntimeError("Tokenizer Not loaded")
         
@@ -112,10 +112,15 @@ class NepaliSentencePieceTokenizer:
         
         if add_bos:
             ids = [self.bos_id] + ids
-            
+
+        if max_length is not None and truncation:
+            # Reserve space for EOS if needed
+            reserve = 1 if add_eos else 0
+            ids = ids[:max_length - reserve]
+
         if add_eos:
             ids = ids + [self.eos_id]
-            
+                
         return ids
     
     def decode(self, ids: List[int]):
@@ -125,13 +130,41 @@ class NepaliSentencePieceTokenizer:
         
         return self.sp.decode(ids)
     
-    def encode_batch(self, texts: List[str], add_bos:bool=False, add_eos:bool=False):
+    def encode_batch(self, texts: List[str], add_bos=False, add_eos=False, max_length: int = 128):
+        if self.sp is None:
+            raise RuntimeError("Tokenizer not loaded")
         
-        return [self.encode(text, add_bos, add_eos) for text in texts]
+        ids_batch = self.sp.encode(texts, out_type=int)  # Batch encode all sentences
+        
+        processed_batch = []
+        for ids in ids_batch:
+            ids = np.array(ids, dtype=np.int32)
+            
+            # Reserve space for EOS if needed
+            reserve = 1 if add_eos else 0
+            
+            # Truncate first
+            if max_length is not None:
+                ids = ids[: max_length - reserve]
+            
+            # Add BOS
+            if add_bos:
+                ids = np.insert(ids, 0, self.bos_id)
+            
+            # Add EOS
+            if add_eos:
+                ids = np.append(ids, self.eos_id)
+            
+            processed_batch.append(ids)
+        
+        return processed_batch  # Returns a list of NumPy arrays
+                
     
     def decode_batch(self, ids_list:List[List[int]]):
+        if self.sp is None:
+            raise RuntimeError("Tokenizer not loaded")
         
-        return [self.decode(ids) for ids in ids_list]
+        return list(map(self.sp.decode, ids_list))
     
     def tokenize(self, text: str):
         
