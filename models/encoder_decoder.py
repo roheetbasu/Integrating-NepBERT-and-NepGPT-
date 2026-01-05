@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel, AutoModelForCausalLM
 from models.cross_attention import CrossAttentionLayer
+from src.tokenizer_utils import NepaliSentencePieceTokenizer
 from typing import  Optional, Dict
 
 class NepaliBERTNepGPTModel(nn.Module):
@@ -16,11 +17,21 @@ class NepaliBERTNepGPTModel(nn.Module):
         
         #Load NepBERT
         print("Loading NepBERT...")
-        self.encoder = AutoModel(config.encoder_model_name)
+        self.encoder = AutoModel.from_pretrained(config.encoder_model_name)
+        encoder_vocab_size = self.config.vocab_size
+        if self.encoder.get_input_embeddings().weight.size(0) != encoder_vocab_size:
+            self.encoder.resize_token_embeddings(encoder_vocab_size)
+
         
         #Load NepGPT
         print("Loading NepGPT...")
-        self.decoder = AutoModelForCausalLM(config.decoder_model_name)
+        self.decoder = AutoModelForCausalLM.from_pretrained(config.decoder_model_name)
+        
+        # Resize embeddings to match your tokenizer vocab
+        decoder_vocab_size = self.config.vocab_size  # from NepaliSentencePieceTokenizer
+        if self.decoder.get_input_embeddings().weight.size(0) != decoder_vocab_size:
+            self.decoder.resize_token_embeddings(decoder_vocab_size)
+            print(f"Resized decoder embeddings to vocab size: {decoder_vocab_size}")
         
         #Add the cross-attention layer 
         self.cross_attention_layers = nn.ModuleList([
@@ -163,3 +174,24 @@ class NepaliBERTNepGPTModel(nn.Module):
             return torch.tensor([[]], device=device, dtype=torch.float)
         
 
+class GECModel:
+    
+    def __init__(self, config):
+        
+        self.config = config
+        
+        #Load Tokenizer first
+        self.tokenizer = NepaliSentencePieceTokenizer(
+            model_prefix=config.model_prefix
+        )
+        self.tokenizer.load()
+        
+        # enforce alignment
+        config.pad_token_id = self.tokenizer.pad_token_id
+        config.unk_token_id = self.tokenizer.unk_token_id
+        config.bos_token_id = self.tokenizer.bos_token_id
+        config.eos_token_id = self.tokenizer.eos_token_id
+        config.vocab_size = self.tokenizer.get_vocab_size()
+        
+        #Load model
+        self.model = NepaliBERTNepGPTModel(config)
