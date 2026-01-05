@@ -13,7 +13,7 @@ class NepaliSentencePieceTokenizer:
         pad_id: int = 0,
         unk_id: int = 1,
         bos_id: int = 2,
-        eos_id: int = 3
+        eos_id: int = 3,
     ):
         self.model_prefix = model_prefix
         self.vocab_size = vocab_size
@@ -89,7 +89,6 @@ class NepaliSentencePieceTokenizer:
                 unk_id = self.unk_id,
                 bos_id = self.bos_id,
                 eos_id = self.eos_id,
-                user_defined_symbols = ['[PAD]','[UNK]','[BOS]','[EOS]'],
                 normalization_rule_name = 'nfkc'
             )
             
