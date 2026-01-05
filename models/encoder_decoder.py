@@ -168,8 +168,9 @@ class NepaliBERTNepGPTModel(nn.Module):
             if eos_token_id and (next_token_id == eos_token_id).all():
                 break
             
-            if generated_ids:
-                return torch.cat(generated_ids, dim=1)
+        if generated_ids:
+            return torch.cat(generated_ids, dim=1)
+        else:
             return torch.tensor([[]], device=device, dtype=torch.long)
         
 
